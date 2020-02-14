@@ -3,7 +3,7 @@
 #
 
 CC=gcc
-CFLAGS=-c -Wall -pthread -std=c99 -D_XOPEN_SOURCE=600 -O2 -I../../../Projects/Spica/C
+CFLAGS=-c -Wall -pthread -std=c99 -D_XOPEN_SOURCE=600 -O2 -I../spica/C
 LD=gcc
 LDFLAGS=-pthread
 SOURCES=solve_system.c \
@@ -15,7 +15,7 @@ EXECUTABLE=LinEq
 	$(CC) $(CFLAGS) $< -o $@
 
 $(EXECUTABLE):	$(OBJECTS)
-	$(LD) $(LDFLAGS) $(OBJECTS) -L../../../Projects/Spica/C -lSpicaC -o $@
+	$(LD) $(LDFLAGS) $(OBJECTS) -L../spica/C -lSpicaC -o $@
 
 # File Dependencies
 ###################
