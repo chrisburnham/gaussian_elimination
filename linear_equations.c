@@ -8,6 +8,8 @@
 
 #include <math.h>
 #include <string.h>
+#include <pthread.h>
+#include <sys/sysinfo.h>
 #include "linear_equations.h"
 
 //! Does the elimination step of reducing the system.
@@ -109,6 +111,33 @@ int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
 ///////////////////////////////////////////////////////////////////////
 
 /**
+ * @brief eliminate_row
+ * @param arg
+ * @return
+ */
+void* eliminate_row(void* arg)
+{
+  const int* thread_num = (int*)arg;
+  printf("Running thread %i\n", thread_num);
+
+//  m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+//  for( k = 0; k < size; ++k )
+//  {
+//    MATRIX_PUT(a,
+//               size,
+//               j,
+//               k,
+//               MATRIX_GET( a, size, j, k ) -
+//                     m * MATRIX_GET( a, size, i, k ) );
+//  }
+//  b[j] -= m * b[i];
+
+  return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////
+
+/**
  * @brief Do gausian elimination using multiple threads
  * @param size of the input
  * @param a matrix of the inputs
@@ -121,6 +150,10 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
       (floating_type *)malloc( size * sizeof(floating_type) );
   int            i, j, k;
   floating_type  temp, m;
+
+  const int nproc = get_nprocs();
+  pthread_t* thread_ids =
+      (pthread_t*)malloc(nproc * sizeof(pthread_t));
 
   for( i = 0; i < size - 1; ++i )
   {
@@ -161,6 +194,16 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
       b[k] = temp;
     }
 
+    for(int t = 0; t < nproc; t++)
+    {
+      pthread_create(&thread_ids[t], NULL, eliminate_row, &t);
+    }
+
+    for(int t = 0; t < nproc; t++)
+    {
+      pthread_join(thread_ids[t], NULL);
+    }
+
     // Subtract multiples of row i from subsequent rows.
     for( j = i + 1; j < size; ++j )
     {
@@ -177,5 +220,10 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
       b[j] -= m * b[i];
     }
   }
+
+  free(thread_ids);
+
   return 0;
 }
+
+
