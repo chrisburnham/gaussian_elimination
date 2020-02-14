@@ -19,6 +19,7 @@ typedef struct Params
   int row_start;
   int row_end;
   int matrix_size;
+  int operation_row;
 } Params;
 
 ///////////////////////////////////////////////////////////////////////
@@ -129,19 +130,29 @@ int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
 void* eliminate_row(void* arg)
 {
   const struct Params* param = (struct Params*)arg;
-  printf("Running thread %i\n", param->row_start);
+  printf("Start: %i, End: %i, Size: %i, i: %i Pointer %p\n",
+         param->row_start,
+         param->row_end,
+         param->matrix_size,
+         param->operation_row,
+         param);
 
-//  m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-//  for( k = 0; k < size; ++k )
+  // Subtract multiples of row i from subsequent rows.
+//  for( int j = i + 1; j < size; ++j )
 //  {
-//    MATRIX_PUT(a,
-//               size,
-//               j,
-//               k,
-//               MATRIX_GET( a, size, j, k ) -
-//                     m * MATRIX_GET( a, size, i, k ) );
+//    m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+//    for( k = 0; k < size; ++k )
+//    {
+//      MATRIX_PUT(a,
+//                 size,
+//                 j,
+//                 k,
+//                 MATRIX_GET( a, size, j, k ) -
+//                       m * MATRIX_GET( a, size, i, k ) );
+//    }
+//    b[j] -= m * b[i];
 //  }
-//  b[j] -= m * b[i];
+
 
   return NULL;
 }
@@ -159,12 +170,12 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
 {
   floating_type *temp_array =
       (floating_type *)malloc( size * sizeof(floating_type) );
-  int            i, j, k;
-  floating_type  temp, m;
+  int i, j, k, thread_rows, row_start, threads_running;
+  floating_type temp, m;
 
   const int nproc = get_nprocs();
-  pthread_t* thread_ids =
-      (pthread_t*)malloc(nproc * sizeof(pthread_t));
+  pthread_t thread_ids[nproc];
+  struct Params param_array[nproc];
 
   for( i = 0; i < size - 1; ++i )
   {
@@ -205,36 +216,61 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
       b[k] = temp;
     }
 
+    // Max number of rows we are giving to each thread
+    // TODO: Could have a min number of rows here (to start less threads)
+    thread_rows = (size - (i+1)) / nproc;
+    row_start = i + 1;
+
+    printf("\n\nStarting up threads with %i rows\n", thread_rows);
+    printf("%i %i %i\n", size, i+1, nproc);
+
+    threads_running = 0;
     for(int t = 0; t < nproc; t++)
     {
-      struct Params param;
-      param.row_start = t;
-      pthread_create(&thread_ids[t], NULL, eliminate_row, &param);
+      int row_end = row_start + thread_rows;
+      if(row_end >= size)
+      {
+        if(row_start >= size)
+        {
+          break; // No need to start this thread
+        }
+
+        row_end = size - 1;
+      }
+
+      param_array[t].row_start = row_start;
+      param_array[t].row_end = row_end;
+      param_array[t].matrix_size = size;
+      param_array[t].operation_row = i;
+
+      pthread_create(&thread_ids[t], NULL, eliminate_row, &param_array[t]);
+      threads_running++;
+      row_start = row_end + 1;
     }
 
-    for(int t = 0; t < nproc; t++)
+    for(int t = 0; t < threads_running; t++)
     {
       pthread_join(thread_ids[t], NULL);
     }
 
     // Subtract multiples of row i from subsequent rows.
-    for( j = i + 1; j < size; ++j )
-    {
-      m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-      for( k = 0; k < size; ++k )
-      {
-        MATRIX_PUT(a,
-                   size,
-                   j,
-                   k,
-                   MATRIX_GET( a, size, j, k ) -
-                         m * MATRIX_GET( a, size, i, k ) );
-      }
-      b[j] -= m * b[i];
-    }
+//    for( j = i + 1; j < size; ++j )
+//    {
+//      m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+//      for( k = 0; k < size; ++k )
+//      {
+//        MATRIX_PUT(a,
+//                   size,
+//                   j,
+//                   k,
+//                   MATRIX_GET( a, size, j, k ) -
+//                         m * MATRIX_GET( a, size, i, k ) );
+//      }
+//      b[j] -= m * b[i];
+//    }
   }
 
-  free(thread_ids);
+  //free(thread_ids);
 
   return 0;
 }
