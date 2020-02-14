@@ -12,6 +12,17 @@
 #include <sys/sysinfo.h>
 #include "linear_equations.h"
 
+///////////////////////////////////////////////////////////////////////
+
+typedef struct Params
+{
+  int row_start;
+  int row_end;
+  int matrix_size;
+} Params;
+
+///////////////////////////////////////////////////////////////////////
+
 //! Does the elimination step of reducing the system.
 static int elimination( int size, floating_type *a, floating_type *b )
 {
@@ -117,8 +128,8 @@ int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
  */
 void* eliminate_row(void* arg)
 {
-  const int* thread_num = (int*)arg;
-  printf("Running thread %i\n", thread_num);
+  const struct Params* param = (struct Params*)arg;
+  printf("Running thread %i\n", param->row_start);
 
 //  m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
 //  for( k = 0; k < size; ++k )
@@ -196,7 +207,9 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
 
     for(int t = 0; t < nproc; t++)
     {
-      pthread_create(&thread_ids[t], NULL, eliminate_row, &t);
+      struct Params param;
+      param.row_start = t;
+      pthread_create(&thread_ids[t], NULL, eliminate_row, &param);
     }
 
     for(int t = 0; t < nproc; t++)
