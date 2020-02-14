@@ -20,6 +20,8 @@ typedef struct Params
   int row_end;
   int matrix_size;
   int operation_row;
+  floating_type* matrix;
+  floating_type* vector;
 } Params;
 
 ///////////////////////////////////////////////////////////////////////
@@ -127,9 +129,11 @@ int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
  * @param arg
  * @return
  */
-void* eliminate_row(void* arg)
+void* eliminate_rows(void* arg)
 {
   const struct Params* param = (struct Params*)arg;
+  floating_type m;
+
   printf("Start: %i, End: %i, Size: %i, i: %i Pointer %p\n",
          param->row_start,
          param->row_end,
@@ -137,22 +141,26 @@ void* eliminate_row(void* arg)
          param->operation_row,
          param);
 
-  // Subtract multiples of row i from subsequent rows.
-//  for( int j = i + 1; j < size; ++j )
-//  {
-//    m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-//    for( k = 0; k < size; ++k )
-//    {
-//      MATRIX_PUT(a,
-//                 size,
-//                 j,
-//                 k,
-//                 MATRIX_GET( a, size, j, k ) -
-//                       m * MATRIX_GET( a, size, i, k ) );
-//    }
-//    b[j] -= m * b[i];
-//  }
+  floating_type* a = param->matrix;
+  floating_type* b = param->vector;
+  int i = param->operation_row;
+  int size = param->matrix_size;
 
+  // Subtract multiples of row i from subsequent rows.
+  for( int j = param->row_start; j <= param->row_end; ++j )
+  {
+    m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+    for( int k = 0; k < size; ++k )
+    {
+      MATRIX_PUT(a,
+                 size,
+                 j,
+                 k,
+                 MATRIX_GET( a, size, j, k ) -
+                       m * MATRIX_GET( a, size, i, k ) );
+    }
+    b[j] -= m * b[i];
+  }
 
   return NULL;
 }
@@ -242,8 +250,10 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
       param_array[t].row_end = row_end;
       param_array[t].matrix_size = size;
       param_array[t].operation_row = i;
+      param_array[t].matrix = a;
+      param_array[t].vector = b;
 
-      pthread_create(&thread_ids[t], NULL, eliminate_row, &param_array[t]);
+      pthread_create(&thread_ids[t], NULL, eliminate_rows, &param_array[t]);
       threads_running++;
       row_start = row_end + 1;
     }
