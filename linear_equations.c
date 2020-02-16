@@ -10,6 +10,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/sysinfo.h>
+#include <stdbool.h>
 #include "linear_equations.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -26,20 +27,29 @@ typedef struct Params
 
 ///////////////////////////////////////////////////////////////////////
 
-inline void subtract_multiples(const int row_start,
-                               const int row_end,
+inline void subtract_multiples(const int first_row,
+                               const int last_row,
                                const int size,
                                const int operation_row,
                                floating_type* matrix,
                                floating_type* vector)
 {
+  static bool normal_direction = true;
+
   floating_type m;
   floating_type* a = matrix;
   floating_type* b = vector;
   const int i = operation_row;
+  const bool switch_directions = true;
+
+  const int row_start = (switch_directions && !normal_direction) ? last_row : first_row;
+  const int row_end = (switch_directions && !normal_direction) ? first_row : last_row;
+
 
   // Subtract multiples of row i from subsequent rows.
-  for( int j = row_start; j <= row_end; ++j )
+  for( int j = row_start;
+       normal_direction ? j <= row_end : j >= row_end;
+       normal_direction ? j++ : j-- )
   {
     m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
     for( int k = 0; k < size; ++k )
@@ -52,6 +62,11 @@ inline void subtract_multiples(const int row_start,
                        m * MATRIX_GET( a, size, i, k ) );
     }
     b[j] -= m * b[i];
+  }
+
+  if(switch_directions)
+  {
+    normal_direction = !normal_direction;
   }
 }
 
@@ -100,14 +115,6 @@ static int elimination( int size, floating_type *a, floating_type *b )
                            i,
                            a,
                            b);
-
-        // Subtract multiples of row i from subsequent rows.
-//        for( j = i + 1; j < size; ++j ) {
-//            m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-//            for( k = 0; k < size; ++k )
-//                MATRIX_PUT( a, size, j, k, MATRIX_GET( a, size, j, k ) - m * MATRIX_GET( a, size, i, k ) );
-//            b[j] -= m * b[i];
-//        }
     }
     return 0;
 }
