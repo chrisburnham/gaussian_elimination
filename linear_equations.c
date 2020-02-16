@@ -262,6 +262,7 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
     {
       pthread_join(thread_ids[t], NULL);
     }
+  }
 
   return 0;
 }
