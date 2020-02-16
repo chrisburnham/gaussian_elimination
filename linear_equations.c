@@ -26,6 +26,38 @@ typedef struct Params
 
 ///////////////////////////////////////////////////////////////////////
 
+inline void subtract_multiples(const int row_start,
+                               const int row_end,
+                               const int size,
+                               const int operation_row,
+                               floating_type* matrix,
+                               floating_type* vector)
+{
+  floating_type m;
+  const floating_type* a = matrix;
+  const floating_type* b = vector;
+  const int i = operation_row;
+
+  // Subtract multiples of row i from subsequent rows.
+  for( int j = row_start; j <= row_end; ++j )
+  {
+    m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+    for( int k = 0; k < size; ++k )
+    {
+      MATRIX_PUT(a,
+                 size,
+                 j,
+                 k,
+                 MATRIX_GET( a, size, j, k ) -
+                       m * MATRIX_GET( a, size, i, k ) );
+    }
+    b[j] -= m * b[i];
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+
 //! Does the elimination step of reducing the system.
 static int elimination( int size, floating_type *a, floating_type *b )
 {
@@ -132,7 +164,12 @@ int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
 void* eliminate_rows(void* arg)
 {
   const struct Params* param = (struct Params*)arg;
-  floating_type m;
+  subtract_multiples(param->row_start,
+                     param->row_end,
+                     param->matrix_size,
+                     param->operation_row,
+                     param->matrix,
+                     param->vector);
 
 //  printf("Start: %i, End: %i, Size: %i, i: %i Pointer %p\n",
 //         param->row_start,
@@ -140,27 +177,6 @@ void* eliminate_rows(void* arg)
 //         param->matrix_size,
 //         param->operation_row,
 //         param);
-
-  floating_type* a = param->matrix;
-  floating_type* b = param->vector;
-  int i = param->operation_row;
-  int size = param->matrix_size;
-
-  // Subtract multiples of row i from subsequent rows.
-  for( int j = param->row_start; j <= param->row_end; ++j )
-  {
-    m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-    for( int k = 0; k < size; ++k )
-    {
-      MATRIX_PUT(a,
-                 size,
-                 j,
-                 k,
-                 MATRIX_GET( a, size, j, k ) -
-                       m * MATRIX_GET( a, size, i, k ) );
-    }
-    b[j] -= m * b[i];
-  }
 
   return NULL;
 }
