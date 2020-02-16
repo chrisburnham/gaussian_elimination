@@ -34,8 +34,8 @@ inline void subtract_multiples(const int row_start,
                                floating_type* vector)
 {
   floating_type m;
-  const floating_type* a = matrix;
-  const floating_type* b = vector;
+  floating_type* a = matrix;
+  floating_type* b = vector;
   const int i = operation_row;
 
   // Subtract multiples of row i from subsequent rows.
@@ -94,13 +94,20 @@ static int elimination( int size, floating_type *a, floating_type *b )
             b[k] = temp;
         }
 
+        subtract_multiples(i+1,
+                           size-1,
+                           size,
+                           i,
+                           a,
+                           b);
+
         // Subtract multiples of row i from subsequent rows.
-        for( j = i + 1; j < size; ++j ) {
-            m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-            for( k = 0; k < size; ++k )
-                MATRIX_PUT( a, size, j, k, MATRIX_GET( a, size, j, k ) - m * MATRIX_GET( a, size, i, k ) );
-            b[j] -= m * b[i];
-        }
+//        for( j = i + 1; j < size; ++j ) {
+//            m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+//            for( k = 0; k < size; ++k )
+//                MATRIX_PUT( a, size, j, k, MATRIX_GET( a, size, j, k ) - m * MATRIX_GET( a, size, i, k ) );
+//            b[j] -= m * b[i];
+//        }
     }
     return 0;
 }
