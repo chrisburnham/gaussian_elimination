@@ -40,7 +40,7 @@ inline void subtract_multiples(const int first_row,
   floating_type* a = matrix;
   floating_type* b = vector;
   const int i = operation_row;
-  const bool switch_directions = true;
+  const bool switch_directions = false;
 
   const int row_start = (switch_directions && !normal_direction) ? last_row : first_row;
   const int row_end = (switch_directions && !normal_direction) ? first_row : last_row;
