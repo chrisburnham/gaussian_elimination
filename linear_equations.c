@@ -10,6 +10,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/sysinfo.h>
+#include <stdbool.h>
 #include "linear_equations.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -23,6 +24,52 @@ typedef struct Params
   floating_type* matrix;
   floating_type* vector;
 } Params;
+
+///////////////////////////////////////////////////////////////////////
+
+inline void subtract_multiples(const int first_row,
+                               const int last_row,
+                               const int size,
+                               const int operation_row,
+                               floating_type* matrix,
+                               floating_type* vector)
+{
+  static bool normal_direction = true;
+
+  floating_type m;
+  floating_type* a = matrix;
+  floating_type* b = vector;
+  const int i = operation_row;
+  const bool switch_directions = true;
+
+  const int row_start = (switch_directions && !normal_direction) ? last_row : first_row;
+  const int row_end = (switch_directions && !normal_direction) ? first_row : last_row;
+
+
+  // Subtract multiples of row i from subsequent rows.
+  for( int j = row_start;
+       normal_direction ? j <= row_end : j >= row_end;
+       normal_direction ? j++ : j-- )
+  {
+    m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+    for( int k = 0; k < size; ++k )
+    {
+      MATRIX_PUT(a,
+                 size,
+                 j,
+                 k,
+                 MATRIX_GET( a, size, j, k ) -
+                       m * MATRIX_GET( a, size, i, k ) );
+    }
+    b[j] -= m * b[i];
+  }
+
+  if(switch_directions)
+  {
+    normal_direction = !normal_direction;
+  }
+}
+
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -62,13 +109,12 @@ static int elimination( int size, floating_type *a, floating_type *b )
             b[k] = temp;
         }
 
-        // Subtract multiples of row i from subsequent rows.
-        for( j = i + 1; j < size; ++j ) {
-            m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-            for( k = 0; k < size; ++k )
-                MATRIX_PUT( a, size, j, k, MATRIX_GET( a, size, j, k ) - m * MATRIX_GET( a, size, i, k ) );
-            b[j] -= m * b[i];
-        }
+        subtract_multiples(i+1,
+                           size-1,
+                           size,
+                           i,
+                           a,
+                           b);
     }
     return 0;
 }
@@ -132,7 +178,12 @@ int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
 void* eliminate_rows(void* arg)
 {
   const struct Params* param = (struct Params*)arg;
-  floating_type m;
+  subtract_multiples(param->row_start,
+                     param->row_end,
+                     param->matrix_size,
+                     param->operation_row,
+                     param->matrix,
+                     param->vector);
 
 //  printf("Start: %i, End: %i, Size: %i, i: %i Pointer %p\n",
 //         param->row_start,
@@ -140,27 +191,6 @@ void* eliminate_rows(void* arg)
 //         param->matrix_size,
 //         param->operation_row,
 //         param);
-
-  floating_type* a = param->matrix;
-  floating_type* b = param->vector;
-  int i = param->operation_row;
-  int size = param->matrix_size;
-
-  // Subtract multiples of row i from subsequent rows.
-  for( int j = param->row_start; j <= param->row_end; ++j )
-  {
-    m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-    for( int k = 0; k < size; ++k )
-    {
-      MATRIX_PUT(a,
-                 size,
-                 j,
-                 k,
-                 MATRIX_GET( a, size, j, k ) -
-                       m * MATRIX_GET( a, size, i, k ) );
-    }
-    b[j] -= m * b[i];
-  }
 
   return NULL;
 }
