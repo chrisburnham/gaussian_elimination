@@ -134,12 +134,12 @@ void* eliminate_rows(void* arg)
   const struct Params* param = (struct Params*)arg;
   floating_type m;
 
-  printf("Start: %i, End: %i, Size: %i, i: %i Pointer %p\n",
-         param->row_start,
-         param->row_end,
-         param->matrix_size,
-         param->operation_row,
-         param);
+//  printf("Start: %i, End: %i, Size: %i, i: %i Pointer %p\n",
+//         param->row_start,
+//         param->row_end,
+//         param->matrix_size,
+//         param->operation_row,
+//         param);
 
   floating_type* a = param->matrix;
   floating_type* b = param->vector;
@@ -229,8 +229,8 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
     thread_rows = (size - (i+1)) / nproc;
     row_start = i + 1;
 
-    printf("\n\nStarting up threads with %i rows\n", thread_rows);
-    printf("%i %i %i\n", size, i+1, nproc);
+    //printf("\n\nStarting up threads with %i rows\n", thread_rows);
+    //printf("%i %i %i\n", size, i+1, nproc);
 
     threads_running = 0;
     for(int t = 0; t < nproc; t++)
@@ -262,25 +262,6 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
     {
       pthread_join(thread_ids[t], NULL);
     }
-
-    // Subtract multiples of row i from subsequent rows.
-//    for( j = i + 1; j < size; ++j )
-//    {
-//      m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
-//      for( k = 0; k < size; ++k )
-//      {
-//        MATRIX_PUT(a,
-//                   size,
-//                   j,
-//                   k,
-//                   MATRIX_GET( a, size, j, k ) -
-//                         m * MATRIX_GET( a, size, i, k ) );
-//      }
-//      b[j] -= m * b[i];
-//    }
-  }
-
-  //free(thread_ids);
 
   return 0;
 }
