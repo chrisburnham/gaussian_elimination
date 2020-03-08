@@ -25,6 +25,13 @@ typedef struct Params
   floating_type* vector;
 } Params;
 
+enum Thread_type
+{
+  pthread,
+  barrier,
+  pool
+}
+
 ///////////////////////////////////////////////////////////////////////
 
 inline void subtract_multiples(const int first_row,
@@ -160,7 +167,22 @@ int gaussian_solve( int size, floating_type *a, floating_type *b )
  */
 int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
 {
-  int return_code = elimination_pthreads(size, a, b );
+  int return_code = elimination_thread(size, a, b, pthread );
+  if( return_code == 0 )
+  {
+    return_code = back_substitution( size, a, b );
+  }
+  return return_code;
+}
+
+///////////////////////////////////////////////////////////////////////
+
+int gaussian_solve_pool_1( ThreadPool *pool, 
+                           int size, 
+                           floating_type *a,
+                           floating_type *b )
+{
+  int return_code = elimination_thread(size, a, b, pool );
   if( return_code == 0 )
   {
     return_code = back_substitution( size, a, b );
@@ -204,7 +226,10 @@ void* eliminate_rows(void* arg)
  * @param b vector of the outputs
  * @return error code. 0 on sucsess, negative on failure
  */
-int elimination_pthreads(int size, floating_type *a, floating_type *b)
+int elimination_thread(int size, 
+                       floating_type *a, 
+                       floating_type *b, 
+                       Thread_type thr_type)
 {
   floating_type *temp_array =
       (floating_type *)malloc( size * sizeof(floating_type) );
@@ -296,5 +321,4 @@ int elimination_pthreads(int size, floating_type *a, floating_type *b)
 
   return 0;
 }
-
 
