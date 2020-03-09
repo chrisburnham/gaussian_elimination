@@ -25,6 +25,12 @@ typedef struct Params
   floating_type* vector;
 } Params;
 
+///////////////////////////////////////////////////////////////////////
+
+// Globals
+
+pthread_barrier_t step_barrier;
+pthread_barrier_t swap_barrier;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -177,7 +183,16 @@ int gaussian_solve_threaded( int size,
                              ThreadPool* pool,
                              enum Thread_type type )
 {
-  int return_code = elimination_thread(size, a, b, pool, type );
+  int return_code;
+  if((type == EType_pthread) || (type == EType_pool))
+  {
+   return_code = elimination_thread(size, a, b, pool, type );
+  }
+  else if(type == EType_barrier)
+  {
+    return_code = elimination_barriers(size, a, b);
+  }
+
   if( return_code == 0 )
   {
     return_code = back_substitution( size, a, b );
@@ -335,3 +350,114 @@ int elimination_thread(int size,
   return 0;
 }
 
+///////////////////////////////////////////////////////////////////////
+
+void* run_barriers(void* arg)
+{
+  const struct Params* param = (struct Params*)arg;
+
+  for( i = 0; i < size - 1; ++i )
+  {
+    if( pthread_barrier_wait( &step_barrier ) == PTHREAD_BARRIER_SERIAL_THREAD )
+    {
+      // Find the row with the largest value of |a[j][i]|, j = i, ..., n - 1
+      k = i;
+      m = fabs( MATRIX_GET( a, size, i, i ) );
+      for( j = i + 1; j < size; ++j )
+      {
+        if( fabs( MATRIX_GET( a, size, j, i ) ) > m )
+        {
+          k = j;
+          m = fabs( MATRIX_GET( a, size, j, i ) );
+        }
+      }
+
+      // Check for |a[k][i]| zero.
+      if( fabs( MATRIX_GET( a, size, k, i ) ) <= 1.0E-6 )
+      {
+        return -2;
+      }
+
+      // Exchange row i and row k, if necessary.
+      if( k != i )
+      {
+        memcpy(temp_array,
+               MATRIX_GET_ROW( a, size, i ),
+               size * sizeof( floating_type ) );
+        memcpy(MATRIX_GET_ROW( a, size, i ),
+               MATRIX_GET_ROW( a, size, k ),
+               size * sizeof( floating_type ) );
+        memcpy(MATRIX_GET_ROW( a, size, k ),
+               temp_array,
+               size * sizeof( floating_type ) );
+
+        // Exchange corresponding elements of b.
+        temp = b[i];
+        b[i] = b[k];
+        b[k] = temp;
+      }
+    }
+
+    subtract_multiples(param->row_start,
+                       param->row_end,
+                       param->matrix_size,
+                       i,
+                       param->matrix,
+                       param->vector);
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
+
+int elimination_barriers(int size, 
+                         floating_type *a, 
+                         floating_type *b )
+{
+  floating_type *temp_array =
+      (floating_type *)malloc( size * sizeof(floating_type) );
+  int i, j, k, thread_rows, row_start, pthreads_threads_running, pool_threads_running;
+  floating_type temp, m;
+
+  const int nproc = get_nprocs();
+  const int thread_rows = (size - 1) / nproc;
+  
+  pthread_t thread_ids[nproc];
+  struct Params param_array[nproc];
+
+  pthread_barrier_init( &step_barrier, NULL, nproc );
+  pthread_barrier_init( &swap_barrier, NULL, nproc );
+
+  for(int t = 0; t < nproc; t++)
+  {
+    int row_end = row_start + thread_rows;
+    if(row_end >= size)
+    {
+      row_end = size - 1;
+    }
+
+    param_array[t].row_start = row_start;
+    param_array[t].row_end = row_end;
+    param_array[t].matrix_size = size;
+    param_array[t].operation_row = 0; // All threads will go through all rows
+    param_array[t].matrix = a;
+    param_array[t].vector = b;
+
+    row_start = row_end + 1;
+
+    pthread_create(&thread_ids[t], NULL, run_barriers, param_array[t]);
+  }
+
+  // Wait for all thread to end.
+  for( int i = 0; i < nproc; ++i ) 
+  {
+    pthread_join( thread_ids[i], NULL );
+  }
+
+  pthread_barrier_destroy( &step_barrier );
+  pthread_barrier_destroy( &swap_barrier );
+
+  return 0;
+}
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
