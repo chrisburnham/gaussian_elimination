@@ -355,6 +355,13 @@ int elimination_thread(int size,
 void* run_barriers(void* arg)
 {
   const struct Params* param = (struct Params*)arg;
+  const int size = param->matrix_size;
+  floating_type *temp_array =
+      (floating_type *)malloc( size * sizeof(floating_type) );
+  int i, j, k;
+  floating_type temp, m;
+  floating_type* a = param->matrix;
+  floating_type* b = param->vector;
 
   for( i = 0; i < size - 1; ++i )
   {
@@ -413,13 +420,9 @@ int elimination_barriers(int size,
                          floating_type *a, 
                          floating_type *b )
 {
-  floating_type *temp_array =
-      (floating_type *)malloc( size * sizeof(floating_type) );
-  int i, j, k, thread_rows, row_start, pthreads_threads_running, pool_threads_running;
-  floating_type temp, m;
-
   const int nproc = get_nprocs();
   const int thread_rows = (size - 1) / nproc;
+  int row_start = 0;
   
   pthread_t thread_ids[nproc];
   struct Params param_array[nproc];
@@ -444,7 +447,7 @@ int elimination_barriers(int size,
 
     row_start = row_end + 1;
 
-    pthread_create(&thread_ids[t], NULL, run_barriers, param_array[t]);
+    pthread_create(&thread_ids[t], NULL, run_barriers, &param_array[t]);
   }
 
   // Wait for all thread to end.
