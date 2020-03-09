@@ -167,7 +167,11 @@ int gaussian_solve_threaded( int size,
                              enum Thread_type type )
 {
   int return_code;
-  if((type == EType_pthread) || (type == EType_pool))
+  if(type == EType_serial)
+  {
+    return_code = elimination(size, a, b);
+  }
+  else if((type == EType_pthread) || (type == EType_pool))
   {
    return_code = elimination_thread(size, a, b, pool, type );
   }

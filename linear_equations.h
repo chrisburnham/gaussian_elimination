@@ -15,6 +15,7 @@ typedef double floating_type;
 
 enum Thread_type
 {
+  EType_serial,
   EType_pthread,
   EType_barrier,
   EType_pool
