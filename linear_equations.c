@@ -159,15 +159,15 @@ int gaussian_solve( int size, floating_type *a, floating_type *b )
  * @param b vector of the outputs
  * @return error code. 0 on sucsess, negative on failure
  */
-int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
-{
-  int return_code = elimination_thread(size, a, b, pthread );
-  if( return_code == 0 )
-  {
-    return_code = back_substitution( size, a, b );
-  }
-  return return_code;
-}
+// int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
+// {
+//   int return_code = elimination_thread(size, a, b, pthread );
+//   if( return_code == 0 )
+//   {
+//     return_code = back_substitution( size, a, b );
+//   }
+//   return return_code;
+// }
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -175,7 +175,7 @@ int gaussian_solve_threaded( int size,
                              floating_type *a,
                              floating_type *b,
                              ThreadPool* pool,
-                             Thread_type type )
+                             enum Thread_type type )
 {
   int return_code = elimination_thread(size, a, b, pool, type );
   if( return_code == 0 )
@@ -224,12 +224,12 @@ void* eliminate_rows(void* arg)
 int elimination_thread(int size, 
                        floating_type *a, 
                        floating_type *b, 
-                       ThreadPool* pool
-                       Thread_type thr_type)
+                       ThreadPool* pool,
+                       enum Thread_type thr_type)
 {
   floating_type *temp_array =
       (floating_type *)malloc( size * sizeof(floating_type) );
-  int i, j, k, thread_rows, row_start, threads_running;
+  int i, j, k, thread_rows, row_start, pthreads_threads_running, pool_threads_running;
   floating_type temp, m;
 
   const int nproc = get_nprocs();
@@ -306,12 +306,12 @@ int elimination_thread(int size,
       param_array[t].matrix = a;
       param_array[t].vector = b;
 
-      if(type == EType_pthread)
+      if(thr_type == EType_pthread)
       {
         pthread_create(&thread_ids_pthread[t], NULL, eliminate_rows, &param_array[t]);
         pthreads_threads_running++;
       }
-      else if(type == EType_pools)
+      else if(thr_type == EType_pool)
       {
         thread_ids_pools[t] = ThreadPool_start(pool, eliminate_rows, &param_array[t]);
         pool_threads_running++;
