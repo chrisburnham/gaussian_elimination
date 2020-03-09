@@ -25,12 +25,6 @@ typedef struct Params
   floating_type* vector;
 } Params;
 
-enum Thread_type
-{
-  pthread,
-  barrier,
-  pool
-}
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -177,12 +171,13 @@ int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
 
 ///////////////////////////////////////////////////////////////////////
 
-int gaussian_solve_pool_1( ThreadPool *pool, 
-                           int size, 
-                           floating_type *a,
-                           floating_type *b )
+int gaussian_solve_threaded( int size, 
+                             floating_type *a,
+                             floating_type *b,
+                             ThreadPool* pool,
+                             Thread_type type )
 {
-  int return_code = elimination_thread(size, a, b, pool );
+  int return_code = elimination_thread(size, a, b, pool, type );
   if( return_code == 0 )
   {
     return_code = back_substitution( size, a, b );
@@ -229,6 +224,7 @@ void* eliminate_rows(void* arg)
 int elimination_thread(int size, 
                        floating_type *a, 
                        floating_type *b, 
+                       ThreadPool* pool
                        Thread_type thr_type)
 {
   floating_type *temp_array =
@@ -237,8 +233,9 @@ int elimination_thread(int size,
   floating_type temp, m;
 
   const int nproc = get_nprocs();
-  pthread_t thread_ids[nproc];
+  pthread_t thread_ids_pthread[nproc];
   struct Params param_array[nproc];
+  threadid_t thread_ids_pools[nproc];
 
   for( i = 0; i < size - 1; ++i )
   {
@@ -287,7 +284,8 @@ int elimination_thread(int size,
     //printf("\n\nStarting up threads with %i rows\n", thread_rows);
     //printf("%i %i %i\n", size, i+1, nproc);
 
-    threads_running = 0;
+    pthreads_threads_running = 0;
+    pool_threads_running = 0;
     for(int t = 0; t < nproc; t++)
     {
       int row_end = row_start + thread_rows;
@@ -308,14 +306,29 @@ int elimination_thread(int size,
       param_array[t].matrix = a;
       param_array[t].vector = b;
 
-      pthread_create(&thread_ids[t], NULL, eliminate_rows, &param_array[t]);
-      threads_running++;
+      if(type == EType_pthread)
+      {
+        pthread_create(&thread_ids_pthread[t], NULL, eliminate_rows, &param_array[t]);
+        pthreads_threads_running++;
+      }
+      else if(type == EType_pools)
+      {
+        thread_ids_pools[t] = ThreadPool_start(pool, eliminate_rows, &param_array[t]);
+        pool_threads_running++;
+      }
+      
+      
       row_start = row_end + 1;
     }
 
-    for(int t = 0; t < threads_running; t++)
+    for(int t = 0; t < pthreads_threads_running; t++)
     {
-      pthread_join(thread_ids[t], NULL);
+      pthread_join(thread_ids_pthread[t], NULL);
+    }
+
+    for(int t = 0; t < pool_threads_running; t++)
+    {
+      ThreadPool_result(pool, thread_ids_pools[t]);
     }
   }
 

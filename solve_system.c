@@ -47,7 +47,7 @@ int main( int argc, char *argv[] )
     ThreadPool_initialize( &pool );
     Timer_initialize( &stopwatch );
     Timer_start( &stopwatch );
-    int error = gaussian_solve_pthreads(size, a, b );
+    int error = gaussian_solve_threaded(size, a, b, pool, EType_pthread );
     Timer_stop( &stopwatch );
     ThreadPool_destroy( &pool );
 
