@@ -9,8 +9,17 @@
 
 #include <stdlib.h>
 #include "ThreadPool.h"
+#include "linear_equations.h"
 
 typedef double floating_type;
+
+enum Thread_type
+{
+  EType_serial,
+  EType_pthread,
+  EType_barrier,
+  EType_pool
+};
 
 // Macros for handling matricies.
 // These macros manipulate a linear array as if it was a two dimensional array.
@@ -34,5 +43,7 @@ int gaussian_solve_barriers( int size, floating_type *a, floating_type *b );
 int gaussian_solve_bidirectional( int size, floating_type *a, floating_type *b );
 int gaussian_solve_pool_1( ThreadPool *pool, int size, floating_type *a, floating_type *b );
 int gaussian_solve_pool_2( ThreadPool *pool, int size, floating_type *a, floating_type *b );
+int gaussian_solve_threaded(int size, floating_type* a, floating_type* b, ThreadPool* pool, enum Thread_type type);
+
 
 #endif
