@@ -32,6 +32,7 @@ typedef struct Params
 pthread_barrier_t step_barrier;
 pthread_barrier_t swap_barrier;
 
+
 ///////////////////////////////////////////////////////////////////////
 
 inline void subtract_multiples(const int first_row,
@@ -47,11 +48,11 @@ inline void subtract_multiples(const int first_row,
   floating_type* a = matrix;
   floating_type* b = vector;
   const int i = operation_row;
-  const bool switch_directions = true;
+  const bool switch_directions = false;
+  const int actual_first = (first_row > (operation_row + 1)) ? first_row : (operation_row + 1);
 
-  const int row_start = (switch_directions && !normal_direction) ? last_row : first_row;
-  const int row_end = (switch_directions && !normal_direction) ? first_row : last_row;
-
+  const int row_start = (switch_directions && !normal_direction) ? last_row : actual_first;
+  const int row_end = (switch_directions && !normal_direction) ? actual_first : last_row;
 
   // Subtract multiples of row i from subsequent rows.
   for( int j = row_start;
@@ -59,6 +60,7 @@ inline void subtract_multiples(const int first_row,
        normal_direction ? j++ : j-- )
   {
     m = MATRIX_GET( a, size, j, i ) / MATRIX_GET( a, size, i, i );
+
     for( int k = 0; k < size; ++k )
     {
       MATRIX_PUT(a,
@@ -158,25 +160,6 @@ int gaussian_solve( int size, floating_type *a, floating_type *b )
 
 ///////////////////////////////////////////////////////////////////////
 
-/**
- * @brief Do gausian elimination using multiple threads
- * @param size of the input
- * @param a matrix of the inputs
- * @param b vector of the outputs
- * @return error code. 0 on sucsess, negative on failure
- */
-// int gaussian_solve_pthreads( int size, floating_type *a, floating_type *b )
-// {
-//   int return_code = elimination_thread(size, a, b, pthread );
-//   if( return_code == 0 )
-//   {
-//     return_code = back_substitution( size, a, b );
-//   }
-//   return return_code;
-// }
-
-///////////////////////////////////////////////////////////////////////
-
 int gaussian_solve_threaded( int size, 
                              floating_type *a,
                              floating_type *b,
@@ -216,13 +199,6 @@ void* eliminate_rows(void* arg)
                      param->operation_row,
                      param->matrix,
                      param->vector);
-
-//  printf("Start: %i, End: %i, Size: %i, i: %i Pointer %p\n",
-//         param->row_start,
-//         param->row_end,
-//         param->matrix_size,
-//         param->operation_row,
-//         param);
 
   return NULL;
 }
@@ -296,9 +272,6 @@ int elimination_thread(int size,
     thread_rows = (size - (i+1)) / nproc;
     row_start = i + 1;
 
-    //printf("\n\nStarting up threads with %i rows\n", thread_rows);
-    //printf("%i %i %i\n", size, i+1, nproc);
-
     pthreads_threads_running = 0;
     pool_threads_running = 0;
     for(int t = 0; t < nproc; t++)
@@ -331,7 +304,6 @@ int elimination_thread(int size,
         thread_ids_pools[t] = ThreadPool_start(pool, eliminate_rows, &param_array[t]);
         pool_threads_running++;
       }
-      
       
       row_start = row_end + 1;
     }
@@ -405,6 +377,8 @@ void* run_barriers(void* arg)
       }
     }
 
+    pthread_barrier_wait(&swap_barrier);
+
     subtract_multiples(param->row_start,
                        param->row_end,
                        param->matrix_size,
@@ -422,7 +396,7 @@ int elimination_barriers(int size,
 {
   const int nproc = get_nprocs();
   const int thread_rows = (size - 1) / nproc;
-  int row_start = 0;
+  int row_start = 1;
   
   pthread_t thread_ids[nproc];
   struct Params param_array[nproc];
