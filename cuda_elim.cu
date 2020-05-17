@@ -1,4 +1,5 @@
 #include "cuda_elim.h"
+#include <cuda_runtime.h>
 
 __global__ void cuda_sub_mul_kernel(int size,
 								     							  floating_type* matrix,
