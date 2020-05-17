@@ -3,7 +3,7 @@
 #
 
 CC=gcc
-CFLAGS=-c -Wall -pthread -std=c99 -D_XOPEN_SOURCE=600 -O2 -I../spica/C
+CFLAGS=-c -Wall -pthread -lOpenCL -std=c99 -D_XOPEN_SOURCE=600 -O2 -I../spica/C
 LD=gcc
 LDFLAGS=-pthread
 SOURCES=solve_system.c \
