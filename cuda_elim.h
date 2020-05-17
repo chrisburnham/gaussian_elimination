@@ -3,7 +3,7 @@
 
 #include "matrix_defs.h"
 
-void cuda_test();
+void cuda_test() {}
 
 void cuda_subtract_multiples(const int size,
 							 							 floating_type* matrix,

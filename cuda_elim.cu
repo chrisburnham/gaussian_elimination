@@ -11,8 +11,6 @@ __global__ void cuda_sub_mul_kernel(int size,
 	vector[i] = 2;
 }
 
-void cuda_test(){}
-
 void cuda_subtract_multiples(const int size,
 							 						   floating_type* matrix,
 							 							 floating_type* vector)
