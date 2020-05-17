@@ -499,7 +499,7 @@ int elimination_cuda(int size,
       b[k] = temp;
     }
 
-    cuda_subtract_multiples(size, a, b);
+    cuda_subtract_multiples(size, a, b, i);
   }
 
   return 0;

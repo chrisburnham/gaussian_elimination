@@ -3,31 +3,45 @@
 
 __global__ void cuda_sub_mul_kernel(int size,
 								     							  floating_type* matrix,
-															      floating_type* vector)
+															      floating_type* vector,
+															      int i)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int j = blockIdx.x * blockDim.x + threadIdx.x;
+  int k = blockIdx.y * blockDim.y + threadIdx.y;
 
-  // TODO: Do subtract multiples
-	MATRIX_PUT(matrix, size, i, j, 1);
-	vector[i] = 2;
+  if((j < size) || (k < size))
+  {
+	  floating_type m = MATRIX_GET( matrix, size, j, i ) / MATRIX_GET( matrix, size, i, i );
+	  MATRIX_PUT(matrix,
+	             size,
+	             j,
+	             k,
+	             MATRIX_GET( matrix, size, j, k ) -
+	                   m * MATRIX_GET( matrix, size, i, k ) );
+
+	  if( k == size -1)
+	  {
+	  	vector[j] -= m * b[i];
+	  }
+	}
 }
 
 void cuda_subtract_multiples(const int size,
 							 						   floating_type* matrix,
-							 							 floating_type* vector)
+							 							 floating_type* vector,
+							 							 int i)
 {
-cudaError_t result;
+	cudaError_t result;
 
-	//double card_mat[size][size];
-	//double card_vect[size];
-	//double card_output[size];
+	floating_type* dev_mat;
+	floating_type* dev_vect;
 
-	// TODO: push data to card
+	cudoMemcpy(dev_mat, matrix, size*size*sizeof(floating_type), cudaMemcpyHostToDevice);
+	cudoMemcpy(dev_vect, vector, size*sizeof(floating_type), cudaMemcpyHostToDevice);
 
 	dim3 threads_per_block(100,100);
 	dim3 num_blocks(size / threads_per_block.x, size / threads_per_block.y);
-	cuda_sub_mul_kernel<<<num_blocks, threads_per_block>>>(size, matrix, vector);
+	cuda_sub_mul_kernel<<<num_blocks, threads_per_block>>>(size, dev_mat, dev_vect, i);
 	
 	result = cudaGetLastError();
 	if(result != cudaSuccess)
@@ -35,5 +49,6 @@ cudaError_t result;
 		printf("Failure running kernel: %s\n", cudaGetErrorString(result));
 	}
 
-	// TODO: Pull data from card
+	cudoMemcpy(matrix, dev_mat, size*size*sizeof(floating_type), cudaMemcpyDeviceToHost);
+	cudoMemcpy(vector, dev_vect, size*sizeof(floating_type), cudaMemcpyDeviceToHost);
 }
