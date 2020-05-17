@@ -1,5 +1,3 @@
-
-#include "matrix_defs.h"
 #include "cuda_elim.h"
 
 __global__ void cuda_sub_mul_kernel(int size,
