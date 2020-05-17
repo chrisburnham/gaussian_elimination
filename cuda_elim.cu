@@ -8,6 +8,7 @@ __global__ void cuda_sub_mul_kernel(int size,
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
 
+  // TODO: Do subtract multiples
 	MATRIX_PUT(matrix, size, i, j, 1);
 	vector[i] = 2;
 }
@@ -22,6 +23,8 @@ cudaError_t result;
 	//double card_vect[size];
 	//double card_output[size];
 
+	// TODO: push data to card
+
 	dim3 threads_per_block(100,100);
 	dim3 num_blocks(size / threads_per_block.x, size / threads_per_block.y);
 	cuda_sub_mul_kernel<<<num_blocks, threads_per_block>>>(size, matrix, vector);
@@ -31,4 +34,6 @@ cudaError_t result;
 	{
 		printf("Failure running kernel: %s\n", cudaGetErrorString(result));
 	}
+
+	// TODO: Pull data from card
 }
