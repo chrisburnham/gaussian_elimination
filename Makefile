@@ -21,7 +21,7 @@ EXECUTABLE=LinEq
 	$(NVCC) $(NVCFLAGS) $< -o $@
 
 $(EXECUTABLE):	$(OBJECTS)
-	$(LD) $(LDFLAGS) $(OBJECTS) -L../spica/C -lSpicaC -o $@
+	$(LD) $(LDFLAGS) $(OBJECTS) -lm -L../spica/C -lSpicaC -o $@
 
 # File Dependencies
 ###################
