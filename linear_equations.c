@@ -12,6 +12,7 @@
 #include <sys/sysinfo.h>
 #include <stdbool.h>
 #include "linear_equations.h"
+#include <cuda_elim.h>
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -454,7 +455,54 @@ int elimination_cuda(int size,
                      floating_type* a,
                      floating_type* b)
 {
+  floating_type *temp_array =
+      (floating_type *)malloc( size * sizeof(floating_type) );
+  int i, j, k, thread_rows, row_start, pthreads_threads_running, pool_threads_running;
+  floating_type temp, m;
 
+  for( i = 0; i < size - 1; ++i )
+  {
+    // Find the row with the largest value of |a[j][i]|, j = i, ..., n - 1
+    k = i;
+    m = fabs( MATRIX_GET( a, size, i, i ) );
+    for( j = i + 1; j < size; ++j )
+    {
+      if( fabs( MATRIX_GET( a, size, j, i ) ) > m )
+      {
+        k = j;
+        m = fabs( MATRIX_GET( a, size, j, i ) );
+      }
+    }
+
+    // Check for |a[k][i]| zero.
+    if( fabs( MATRIX_GET( a, size, k, i ) ) <= 1.0E-6 )
+    {
+      return -2;
+    }
+
+    // Exchange row i and row k, if necessary.
+    if( k != i )
+    {
+      memcpy(temp_array,
+             MATRIX_GET_ROW( a, size, i ),
+             size * sizeof( floating_type ) );
+      memcpy(MATRIX_GET_ROW( a, size, i ),
+             MATRIX_GET_ROW( a, size, k ),
+             size * sizeof( floating_type ) );
+      memcpy(MATRIX_GET_ROW( a, size, k ),
+             temp_array,
+             size * sizeof( floating_type ) );
+
+      // Exchange corresponding elements of b.
+      temp = b[i];
+      b[i] = b[k];
+      b[k] = temp;
+    }
+
+    cuda_subtract_multiples(size, matrix, vector);
+  }
+
+  return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////
