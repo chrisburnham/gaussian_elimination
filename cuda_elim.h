@@ -2,6 +2,8 @@
 #define CUDA_ELIM_H
 
 #include "matrix_defs.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <cuda_runtime.h>
 
 void cuda_test() {}
