@@ -2,15 +2,15 @@
 #include "matrix_defs.h"
 #include "cuda_elim.h"
 
-__global__ cuda_sub_mul_kernel(int size,
-															 floating_type* matrix,
-															 floating_type* vector)
+__global__ void cuda_sub_mul_kernel(int size,
+								     							  floating_type* matrix,
+															      floating_type* vector)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-	MATRIX_PUT(a, size, i, j, 1);
-	b[i] = 2;
+	MATRIX_PUT(matrix, size, i, j, 1);
+	vector[i] = 2;
 }
 
 void cuda_subtract_multiples(const int size,
