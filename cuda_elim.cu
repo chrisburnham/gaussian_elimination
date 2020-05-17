@@ -1,5 +1,6 @@
 
 #include "matrix_defs.h"
+#include "cuda_elim.h"
 
 __global__ cuda_sub_mul_kernel(int size,
 															 floating_type* matrix,

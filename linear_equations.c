@@ -12,7 +12,7 @@
 #include <sys/sysinfo.h>
 #include <stdbool.h>
 #include "linear_equations.h"
-#include <cuda_elim.h>
+#include "cuda_elim.h"
 
 ///////////////////////////////////////////////////////////////////////
 
