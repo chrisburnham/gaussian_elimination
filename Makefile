@@ -3,9 +3,9 @@
 #
 
 NVCC=nvcc
-NVCFLAGS=-c -m64 -arch=sm_60 -pthread -D_XOPEN_SOURCE=600 -O2 -I../spica/C
+NVCFLAGS=-c -m64 -arch=sm_60 -D_XOPEN_SOURCE=600 -O2 -I../spica/C
 LD=nvcc
-LDFLAGS=-pthread
+LDFLAGS=-m64 -arch=sm_60
 SOURCES=solve_system.c \
         linear_equations.c \
         cuda_elim.cu
