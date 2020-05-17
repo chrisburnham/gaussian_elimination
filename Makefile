@@ -26,11 +26,13 @@ $(EXECUTABLE):	$(OBJECTS)
 # File Dependencies
 ###################
 
+cuda_elim.o: cuda_elim.cu matrix_defs.h cuda_elim.h
+
 solve_system.o:	solve_system.c linear_equations.h
 
 linear_equations.o:	linear_equations.c linear_equations.h matrix_defs.h cuda_elim.h
 
-cuda_elim.o: cuda_elim.cu matrix_defs.h cuda_elim.h
+
 
 # Additional Rules
 ##################
