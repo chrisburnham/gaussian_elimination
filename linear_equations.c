@@ -12,6 +12,7 @@
 #include <CL/cl.h>
 #include <sys/sysinfo.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "linear_equations.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -478,6 +479,9 @@ int elimination_opencl(int size,
                        floating_type* a,
                        floating_type* b)
 {
+  const int mat_datasize = size * size * sizeof(floating_type);
+  const int vect_datasize = size * sizeof(floating_type);
+
   cl_uint platform_count = 0;
   cl_platform_id platform;
 
@@ -500,13 +504,12 @@ int elimination_opencl(int size,
   if( status != CL_SUCCESS ) fprintf( stderr, "Error creating the command queue!\n" );
 
   // Allocate two input buffers and one output buffer.
-  cl_mem bufA = clCreateBuffer( context, CL_MEM_READ_ONLY,  size * size, NULL, &status );
-  cl_mem bufB = clCreateBuffer( context, CL_MEM_READ_ONLY,  size, NULL, &status );
-  cl_mem bufC = clCreateBuffer( context, CL_MEM_WRITE_ONLY, size * size, NULL, &status );
+  cl_mem bufA = clCreateBuffer( context, CL_MEM_READ_WRITE, mat_datasize, NULL, &status );
+  cl_mem bufB = clCreateBuffer( context, CL_MEM_READ_WRITE, vect_datasize, NULL, &status );
 
   // Transfer data from host arrays into the input buffers.
-  status = clEnqueueWriteBuffer( cmdQueue, bufA, CL_FALSE, 0, size * size, a, 0, NULL, NULL );
-  status = clEnqueueWriteBuffer( cmdQueue, bufB, CL_FALSE, 0, size, b, 0, NULL, NULL );
+  status = clEnqueueWriteBuffer( cmdQueue, bufA, CL_FALSE, 0, mat_datasize, a, 0, NULL, NULL );
+  status = clEnqueueWriteBuffer( cmdQueue, bufB, CL_FALSE, 0, vect_datasize, b, 0, NULL, NULL );
 
   // Create a program with source code.
   cl_program program =
@@ -536,12 +539,11 @@ int elimination_opencl(int size,
   // Set the kernel arguments.
   status = clSetKernelArg( kernel, 0, sizeof(cl_mem), &bufA );
   status = clSetKernelArg( kernel, 1, sizeof(cl_mem), &bufB );
-  status = clSetKernelArg( kernel, 2, sizeof(cl_mem), &bufC );
 
   // Define an index space of work items for execution.
   // A work group size is not required, but can be used.
   size_t indexSpaceSize[1], workGroupSize[1];
-  indexSpaceSize[0] = elements;
+  indexSpaceSize[0] = size;
   workGroupSize[0] = 256;
 
   // Execute the kernel.
@@ -551,11 +553,13 @@ int elimination_opencl(int size,
   if( status != CL_SUCCESS ) fprintf( stderr, "Error queuing kernel execution!\n" );
 
   // Read the device output buffer to the host output arrays.
-  status = clEnqueueReadBuffer( cmdQueue, bufC, CL_TRUE, 0, datasize, C, 0, NULL, NULL );
+  status = clEnqueueReadBuffer( cmdQueue, bufA, CL_TRUE, 0, mat_datasize, a, 0, NULL, NULL );
+  status = clEnqueueReadBuffer( cmdQueue, bufB, CL_TRUE, 0, vect_datasize, b, 0, NULL, NULL );
 
-  for( int i = 0; i < elements; ++i ) {
-      printf( "C[%4d] = %d\n", i, C[i] );
-  }
+
+  // for( int i = 0; i < elements; ++i ) {
+  //     printf( "C[%4d] = %d\n", i, C[i] );
+  // }
 
   // Free OpenCL resources.
   clReleaseKernel( kernel );
@@ -563,7 +567,6 @@ int elimination_opencl(int size,
   clReleaseCommandQueue( cmdQueue );
   clReleaseMemObject( bufA );
   clReleaseMemObject( bufB );
-  clReleaseMemObject( bufC );
   clReleaseContext( context );
 
   // Free host resources.

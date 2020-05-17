@@ -5,7 +5,7 @@
 CC=gcc
 CFLAGS=-c -Wall -pthread -lOpenCL -std=c99 -D_XOPEN_SOURCE=600 -O2 -I../spica/C
 LD=gcc
-LDFLAGS=-pthread
+LDFLAGS=-pthread -lOpenCL
 SOURCES=solve_system.c \
         linear_equations.c
 OBJECTS=$(SOURCES:.c=.o)
