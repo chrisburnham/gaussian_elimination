@@ -3,7 +3,7 @@
 #
 
 NVCC=nvcc
-NVCFLAGS=-c -m64 -arch=sm_60 -Wall -pthread -std=c99 -D_XOPEN_SOURCE=600 -O2 -I../spica/C
+NVCFLAGS=-c -m64 -arch=sm_60 -Wall -pthread -D_XOPEN_SOURCE=600 -O2 -I../spica/C
 LD=nvcc
 LDFLAGS=-pthread
 SOURCES=solve_system.c \
