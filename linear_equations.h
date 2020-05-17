@@ -18,7 +18,9 @@ enum Thread_type
   EType_serial,
   EType_pthread,
   EType_barrier,
-  EType_pool
+  EType_pool,
+  EType_cuda,
+  EType_opencl
 };
 
 // Macros for handling matricies.

@@ -179,6 +179,14 @@ int gaussian_solve_threaded( int size,
   {
     return_code = elimination_barriers(size, a, b);
   }
+  else if(type == EType_cuda)
+  {
+    return_code = elimination_cuda(size, a, b);
+  }
+  else if(type == EType_opencl)
+  {
+    return_code = elimination_opencl(size, a, b);
+  }
 
   if( return_code == 0 )
   {
@@ -438,6 +446,24 @@ int elimination_barriers(int size,
   pthread_barrier_destroy( &swap_barrier );
 
   return 0;
+}
+
+///////////////////////////////////////////////////////////////////////
+
+int elimination_cuda(int size,
+                     floating_type* a,
+                     floating_type* b)
+{
+
+}
+
+///////////////////////////////////////////////////////////////////////
+
+int elimination_opencl(int size,
+                       floating_type* a,
+                       floating_type* b)
+{
+
 }
 
 ///////////////////////////////////////////////////////////////////////
